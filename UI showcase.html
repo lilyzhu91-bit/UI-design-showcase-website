@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多通貨資産管理ツール — Case Study</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #FFEA31;
+    --orange: #FA9819;
+    --blue: #52CBFF;
+    --white: #FFFFFF;
+    --black: #000000;
+    --bg: #FFFFFF;
+    --bg2: #FFF8B8;
+    --text: #181818;
+    --muted: #666;
+    --nav-width: 220px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Source Sans 3', 'Source Han Sans SC', 'PingFang SC', 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ══════════ NAV ══════════ */
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--nav-width);
+    height: 100vh;
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    padding: 36px 0;
+    z-index: 100;
+    border-right: 3px solid var(--blue);
+  }
+
+  .nav-logo {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  .nav-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .nd { width: 10px; height: 10px; border-radius: 50%; }
+  .nd-y { background: var(--yellow); }
+  .nd-o { background: var(--orange); }
+  .nd-b { background: var(--blue); }
+
+  .nav-logo .l-jp {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    color: #555;
+    line-height: 1.7;
+  }
+
+  .nav-logo .l-en {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--orange);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+
+  .nav-links {
+    list-style: none;
+    padding: 18px 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .nav-links li { position: relative; }
+
+  .nav-links a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    color: #555;
+    text-decoration: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.18s, background 0.18s;
+  }
+
+  .nav-links a:hover { color: var(--white); background: #111; }
+
+  .nav-links a.active {
+    color: var(--white);
+    background: #0d0d0d;
+  }
+
+  .nav-links a.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--blue);
+  }
+
+  .nav-num { font-size: 7.5px; color: #383838; min-width: 18px; }
+  .nav-links a.active .nav-num,
+  .nav-links a:hover  .nav-num { color: var(--orange); }
+
+  .nav-footer {
+    padding: 16px 24px 0;
+    border-top: 1px solid #1a1a1a;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    color: #383838;
+    letter-spacing: 0.08em;
+    line-height: 2;
+  }
+
+  /* ══════════ MAIN ══════════ */
+  main { margin-left: var(--nav-width); flex: 1; }
+
+  section {
+    padding: 80px 72px;
+    border-bottom: 1px solid #dedad6;
+    position: relative;
+  }
+
+  /* ══════════ TYPE ══════════ */
+  .sec-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--blue);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  h1.sec-title {
+    font-size: clamp(26px, 3.2vw, 44px);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin-bottom: 52px;
+    max-width: 660px;
+  }
+
+  h1.sec-title em { font-style: normal; color: var(--orange); }
+
+  h2.sub-title {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+  }
+
+  /* ══════════ HERO ══════════ */
+  #hero {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 80px;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    top: -10px; right: -16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 120px;
+    font-weight: 500;
+    color: rgba(0,0,0,0.04);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -0.04em;
+  }
+
+  /* Blue accent bar at top of hero */
+  .hero-topbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(to right, var(--yellow) 0%, var(--orange) 40%, var(--blue) 100%);
+  }
+
+  .hero-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 20px; height: 2px;
+    background: var(--blue);
+    display: inline-block;
+  }
+
+  .hero-title {
+    font-size: clamp(28px, 4vw, 54px);
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    margin-bottom: 10px;
+  }
+
+  .hero-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: #00000;
+    letter-spacing: 0.04em;
+    max-width: 500px;
+    line-height: 1.85;
+    margin-bottom: 52px;
+  }
+
+  .hero-images { display: flex; gap: 24px; align-items: flex-start; }
+
+  .img-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .placeholder {
+    background: #e4e0db;
+    border: 1px dashed #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+.imageholder {
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+.imageholder-radius {
+    border: none;
+	border-radius: 15px;
+	overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+.imageholder-crop300h {
+    border: none;
+    height: 300px;
+	border-radius: 15px;
+	overflow: hidden;
+	display: flex;
+	flex-shrink: 0;
+	object-fit: cover;
+	object-position: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+	.ph-lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: #aaa;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .ph-ico { font-size: 22px; opacity: 0.35; }
+
+  .hero-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.14em;
+    color: #bbb;
+    text-transform: uppercase;
+  }
+
+  .hline { width: 1px; height: 400px; background: linear-gradient(to bottom, var(--yellow), var(--orange)); }
+
+  .scroll-tip {
+    position: absolute;
+    bottom: 28px; left: 72px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.18em;
+    color: #bbb;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .s-line { width: 28px; height: 1px; background: var(--yellow); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ══════════ CONTEXT ══════════ */
+  #context { background: var(--white); }
+
+  .blocks-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+
+  .block-card {
+    padding: 32px 26px;
+    background: var(--bg);
+    position: relative;
+    border-top: 3px solid transparent;
+  }
+
+  .block-card:nth-child(1) { border-top-color: var(--yellow); }
+  .block-card:nth-child(2) { border-top-color: var(--orange); }
+  .block-card:nth-child(3) { border-top-color: var(--blue); }
+
+  .block-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+  .block-card p  { font-size: 14px; color: var(--muted); line-height: 1.8; }
+
+  .block-num {
+    position: absolute; top: 18px; right: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; color: #ccc; letter-spacing: 0.1em;
+  }
+
+  /* ══════════ PIVOT ══════════ */
+  #pivot { background: var(--bg2); }
+
+  .voice-block {
+    background: var(--black);
+    color: var(--white);
+    padding: 26px 34px;
+    margin-bottom: 42px;
+    border-left: 4px solid var(--blue);
+    display: flex; gap: 32px;
+  }
+
+  .voice-item { font-size: 16px; line-height: 1.7; flex: 1; }
+
+  .voice-item::before {
+    content: '"';
+    font-size: 36px;
+    color: var(--blue);
+    line-height: 1;
+    display: block;
+    margin-bottom: 4px;
+    font-family: Georgia, serif;
+  }
+
+  .pivot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+  .pv-version {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 0.15em;
+    color: var(--black); text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .pivot-item h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+  .pivot-item p  { font-size: 14px; color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
+
+  /* ══════════ AESTHETICS ══════════ */
+  #aesthetics { background: var(--bg); }
+
+  .blue-band {
+    background: color-mix(in srgb, var(--blue), transparent 15%);
+    color: var(--black);
+    padding: 18px 26px;
+    margin-bottom: 40px;
+    display: flex; align-items: center; gap: 20px;
+  }
+
+  .blue-band .bb-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(0,0,0,0.7);
+    white-space: nowrap;
+  }
+
+  .blue-band p { font-size: 15px; font-weight: 600; }
+
+  .aes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+
+  .aes-text p { font-size: 14.5px; line-height: 1.85; color: var(--muted); margin-bottom: 16px; }
+  .aes-text p strong { color: var(--text); font-weight: 600; }
+
+  .wireframe-row { display: flex; gap: 16px; margin-top: 32px; }
+  .wf-item .wf-lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px; color: #aaa; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  .pillars { display: flex; flex-direction: column; gap: 16px; }
+
+  .pillar {
+    padding: 18px 22px;
+    border-left: 3px solid transparent;
+    background: var(--white);
+  }
+
+  .pillar:nth-child(1) { border-color: var(--yellow); }
+  .pillar:nth-child(2) { border-color: var(--orange); }
+  .pillar:nth-child(3) { border-color: var(--blue); }
+
+  .pillar-lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; color: #bbb; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+
+  .pillar p { font-size: 13.5px; color: var(--muted); line-height: 1.75; }
+
+  /* ══════════ GUIDELINES ══════════ */
+  #guidelines { background: var(--white); }
+
+  .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; }
+
+  .font-block { margin-bottom: 32px; }
+
+  .font-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px; letter-spacing: 0.12em;
+    color: var(--orange); text-transform: uppercase; margin-bottom: 6px;
+  }
+
+  /* font specimens */
+  .fs-serif   { font-family: Georgia,'Times New Roman',serif; font-size: 32px; line-height: 1.2; letter-spacing: -0.01em; }
+  .fs-serif em { font-style: italic; }
+  .fs-mono    { font-family: 'IBM Plex Mono',monospace; font-size: 22px; font-weight: 300; color: #777; }
+  .fs-cjk-s   { font-family: 'Noto Serif SC','Source Han Serif SC',Georgia,serif; font-size: 30px; line-height: 1.35; }
+  .fs-cjk-g   { font-family: 'Source Han Sans SC','PingFang SC','Noto Sans SC',sans-serif; font-size: 28px; color: #555; }
+
+  /* circular swatches */
+  .color-section { margin-bottom: 44px; }
+
+  .cs-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 0.13em;
+    color: var(--orange); text-transform: uppercase; margin-bottom: 16px;
+  }
+
+  .swatch-row { display: flex; flex-wrap: wrap; gap: 14px; }
+
+  .swatch-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+
+  .swatch-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .swatch-hex {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px; color: #bbb; letter-spacing: 0.04em;
+  }
+
+  /* ══════════ SPLIT LAYOUT (viz + interaction) ══════════ */
+  .content-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    margin-bottom: 64px;
+  }
+
+.image-container {
+	max-width: 380px;
+    max-height: 380px;
+	width: 100%;
+    overflow: hidden;
+	border-radius: 20px;
+	aspect-ratio: 1 / 1;
+	}
+.image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    display: block;
+}
+
+	.split-tag {
+    display: inline-block;
+    background: var(--blue);
+    color: var(--black);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 4px 11px;
+    margin-bottom: 12px;
+  }
+
+  .split-tag.t-orange { background: var(--orange); }
+  .split-tag.t-yellow { background: var(--yellow); }
+
+  .split-h { font-size: 19px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.01em; }
+  .split-p { font-size: 14px; color: var(--muted); line-height: 1.85; margin-bottom: 14px; }
+
+  .feat-list { list-style: none; }
+
+  .feat-list li {
+    font-size: 13px; color: var(--muted); line-height: 1.7;
+    padding-left: 18px; position: relative;
+  }
+
+  .feat-list li::before {
+    content: '—';
+    position: absolute; left: 0;
+    color: var(--blue);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .feat-list.o-mark li::before { color: var(--orange); }
+  .feat-list.y-mark li::before { color: #c8b400; }
+
+  .chart-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .csl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px; color:var(--text); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  /* ══════════ VIZ ══════════ */
+  #visualization { background: var(--bg2); }
+
+  /* ══════════ INTERACTION ══════════ */
+  #interaction { background: var(--white); }
+
+  /* ══════════ ABOUT ══════════ */
+  #about { background: var(--black); color: var(--white); }
+  #about .sec-num { color: var(--blue); }
+  #about h1.sec-title { color: var(--white); }
+
+  .about-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+
+  .about-card {
+    padding: 30px 22px;
+    background: #0d0d0d;
+    border-top: 3px solid transparent;
+  }
+
+  .about-card:nth-child(1) { border-top-color: var(--yellow); }
+  .about-card:nth-child(2) { border-top-color: var(--orange); }
+  .about-card:nth-child(3) { border-top-color: var(--blue); }
+
+  .ac-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px; letter-spacing: 0.15em;
+    color: var(--white); text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  .about-card h3 { font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 10px; }
+  .about-card p  { font-size: 13px; line-height: 1.85; color: var(--white); }
+  .about-card p em { font-style: italic; color: #999; }
+
+  .nda-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #222; padding: 5px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px; letter-spacing: 0.13em;
+    color: #444; text-transform: uppercase; margin-top: 14px;
+  }
+
+  .nda-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--orange); }
+
+  /* ══════════ DIVIDER ══════════ */
+  .divider {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 40px;
+  }
+
+  .div-line { flex: 1; height: 1px; background: #ddd; }
+  .div-lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; color: #bbb; letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  /* ══════════ RESPONSIVE ══════════ */
+  @media (max-width: 860px) {
+    nav { width: 52px; }
+    .nav-logo div:not(.nav-dots), .nav-links a span:not(.nav-num), .nav-footer { display: none; }
+    main { margin-left: 52px; }
+    section { padding: 56px 28px; }
+    .blocks-row, .pivot-grid, .aes-grid, .guide-grid,
+    .about-grid, .content-split, .chart-pair { grid-template-columns: 1fr; }
+    .hero-title { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════ NAV ════ -->
+<nav id="main-nav">
+  <div class="nav-logo">
+    <div class="nav-dots">
+      <div class="nd nd-y"></div>
+      <div class="nd nd-o"></div>
+      <div class="nd nd-b"></div>
+    </div>
+    <div class="l-jp">多通貨資産管理ツール</div>
+    <div class="l-en">Asset Manager</div>
+  </div>
+
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#hero"          class="active"><span class="nav-num">00</span><span>Overview</span></a></li>
+    <li><a href="#context">                     <span class="nav-num">01</span><span>Context</span></a></li>
+    <li><a href="#pivot">                       <span class="nav-num">02</span><span>Pivot</span></a></li>
+    <li><a href="#aesthetics">                  <span class="nav-num">03</span><span>Aesthetics</span></a></li>
+    <li><a href="#guidelines">                  <span class="nav-num">04</span><span>Guidelines</span></a></li>
+    <li><a href="#visualization">               <span class="nav-num">05</span><span>Data Viz</span></a></li>
+    <li><a href="#interaction">                 <span class="nav-num">06</span><span>Interaction</span></a></li>
+    <li><a href="#about">                       <span class="nav-num">07</span><span>About</span></a></li>
+  </ul>
+
+  <div class="nav-footer">
+    © 2025<br>Nagoya, JP<br>Logic-First
+  </div>
+</nav>
+
+<!-- ════ MAIN ════ -->
+<main>
+
+  <!-- 00 HERO -->
+  <section id="hero">
+    <div class="hero-topbar"></div>
+    <div class="hero-bg">Assets Allocation</div>
+
+    <div class="hero-tag">UX Case Study · 2025</div>
+
+    <h1 class="hero-title">多通貨資産管理ツール</h1>
+
+    <p class="hero-sub">
+      ロジック優先のアプローチ：ユーザーの洞察から<br>
+      グローバル資産管理の設計へ<br>
+      From user insight to global asset management design.
+    </p>
+
+    <div class="hero-images">
+      <div>
+        <div class="img-label">From</div>
+        <div class="imageholder" style="display: inline-block;">
+          <img src= "images/top1.png" alt="mindmap" style= "display: block; max-width: 360px; width: 100%; height: auto;">
+          <div class="ph-lbl">brainstorm</div>
+        </div>
+      </div>
+
+      <div class="hero-connector">
+        <div class="hline"></div>
+      </div>
+
+      <div>
+        <div class="img-label">To</div>
+        <div class="imageholder" style="display: inline-block;">
+          <img src= "images/top2.png" alt="mindmap" style= "display: block; max-width: 360px; width: 100%; max-height: 360px;">
+          <div class="ph-lbl">design</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-tip">
+      <div class="s-line"></div>
+      <span>Scroll to explore</span>
+    </div>
+  </section>
+
+  <!-- 01 CONTEXT -->
+  <section id="context">
+    <div class="sec-num">01 — Context</div>
+    <h1 class="sec-title">ユーザーの<em>本質的なニーズ</em></h1>
+
+    <div class="blocks-row">
+      <div class="block-card">
+        <span class="block-num">01</span>
+        <h3>多通貨の可視化</h3>
+        <p>世界中に分散した資産（円、ドル、元など）を一つのダッシュボードで統合管理する。</p>
+      </div>
+      <div class="block-card">
+        <span class="block-num">02</span>
+        <h3>データ主権</h3>
+        <p>資産データはローカル環境に留める。銀行や証券口座とのAPI連携を排し、トラッキングされない「クリーンな環境」を追求。</p>
+      </div>
+      <div class="block-card">
+        <span class="block-num">03</span>
+        <h3>履歴追跡</h3>
+        <p>資産配分の経時的な変化を可視化し、長期的な意思決定をサポートする。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 PIVOT -->
+  <section id="pivot">
+    <div class="sec-num">02 — Pivot</div>
+    <h1 class="sec-title">データの継続性と<em>ポータビリティ</em></h1>
+
+    <div class="voice-block">
+      <div class="voice-item">クラウドを使わないとダメ？</div>
+      <div class="voice-item">スマホを買い替えたらどうなるのか？</div>
+    </div>
+
+    <div class="divider">
+      <div class="div-line"></div>
+      <div class="div-lbl">コミュニティの声</div>
+      <div class="div-line"></div>
+    </div>
+
+    <div class="pivot-grid">
+      <div class="pivot-item">
+        <div class="pv-version">初期設計 — V1</div>
+        <h3>記録と比較</h3>
+        <div class="imageholder-crop300h" style="display: inline-block">
+          <img src="images/frame1.png" alt="" style= "display: block; max-width: 500px; width: auto; height: auto;">
+          
+        </div>
+		<p>記録と比較機能に特化。将来的なデバイス変更やデータ移行を想定していなかった。</p>
+
+      </div>
+      <div class="pivot-item">
+        <div class="pv-version">解決策 - V2</div>
+        <h3>デバイスを超えて</h3>
+        <div class="imageholder-crop300h" style="display: inline-block">
+           <img src="images/frame2.png" alt="framev1" style= "display: block; max-width: 500px; width: auto; height: auto;">
+        </div>
+		<p>CSV/JSON形式の入出力機能を中核に統合。「使い切り」から継続できる「資産管理ツール」へ。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 AESTHETICS -->
+  <section id="aesthetics">
+    <div class="sec-num">03 — Aesthetics</div>
+    <h1 class="sec-title">データのノイズを排し、<em>「読む」体験へ</em></h1>
+
+    <div class="blue-band">
+      <div class="bb-tag">Design Principle</div>
+      <p>静謐なインターフェース</p>
+    </div>
+
+    <div class="aes-grid">
+      <div class="aes-text">
+        <p><strong>投資アプリ特有の刺激的な配色を避け、</strong><br>市場の変動に惑わされない「静謐なインターフェース」を追求。</p>
+        <p><strong>明朝体と大胆な余白を活かし、</strong><br>信頼感のある上質な誌面のようなレイアウトを採用。</p>
+        <p><strong>文字そのものの美しさと配置によって、</strong><br>情報の論理構造を視覚的に構築する。</p>
+
+        <div class="wireframe-row">
+          <div class="wf-item">
+            <div class="wf-lbl">Wireframe</div>
+            <div class="imageholder-radius" style="display: inline-block">
+              <img src="images/A1.png" alt=""; style="display: block; max-width: 201px;">
+            </div>
+          </div>
+          <div class="wf-item">
+            <div class="wf-lbl">Final UI</div>
+            <div class="imageholder-radius" style="display: inline-block">
+              <img src="images/A2.png" alt=""; style="display: block; max-width: 201px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pillars">
+        <div class="pillar">
+          <div class="pillar-lbl">Philosophy</div>
+          <p>Less noise, more clarity. 市場の変動より長期的な視野。</p>
+        </div>
+        <div class="pillar">
+          <div class="pillar-lbl">Typography Approach</div>
+          <p>Every character placement constructs logical hierarchy. 活字配置が情報構造を語る。</p>
+        </div>
+        <div class="pillar">
+          <div class="pillar-lbl">Target User</div>
+          <p>Cross-border asset holders who value data sovereignty over cloud convenience. データ主権を重視するユーザー。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 GUIDELINES -->
+  <section id="guidelines">
+    <div class="sec-num">04 — Design Guidelines</div>
+    <h1 class="sec-title">デザイン<em>ガイドライン</em></h1>
+
+    <div class="guide-grid">
+
+      <!-- Fonts -->
+      <div>
+        <h2 class="sub-title" style="margin-top:0;">フォント</h2>
+
+        <div class="font-block">
+          <div class="font-meta">EB Garamond · Serif Display</div>
+          <div class="fs-serif">Aa Bb 1234 <em>Italic</em></div>
+        </div>
+
+        <div class="font-block">
+          <div class="font-meta">IBM Plex Mono · Data / Labels</div>
+          <div class="fs-mono">0x0F · ¥$ · 01.24</div>
+        </div>
+
+        <div class="font-block">
+          <div class="font-meta">思源宋体 · Source Han Serif SC · CJK Serif</div>
+          <div class="fs-cjk-s">資産管理<br>资产管理</div>
+        </div>
+
+        <div class="font-block">
+          <div class="font-meta">思源黑体 · Source Han Sans SC · CJK Sans</div>
+          <div class="fs-cjk-g">数据可视化<br>データ可視化</div>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div>
+        <h2 class="sub-title" style="margin-top:0;">カラー</h2>
+
+        <div class="color-section">
+          <div class="cs-label">基本カラー — Base</div>
+          <div class="swatch-row">
+            <div class="swatch-item"><div class="swatch-circle" style="background:#F7F4EF;"></div><div class="swatch-hex">F7F4EF</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#F0ECE4;"></div><div class="swatch-hex">F0ECE4</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#D0C8C0;"></div><div class="swatch-hex">D0C8C0</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#8A827A;"></div><div class="swatch-hex">8A827A</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#4A4540;"></div><div class="swatch-hex">4A4540</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#1A1714;border-color:#555;"></div><div class="swatch-hex">1A1714</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#9A9390;"></div><div class="swatch-hex">9A9390</div></div>
+          </div>
+        </div>
+
+        <div class="color-section">
+          <div class="cs-label">図表カラー — Chart</div>
+          <div class="swatch-row">
+            <div class="swatch-item"><div class="swatch-circle" style="background:#D8D1C2;"></div><div class="swatch-hex">D8D1C2</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#769264;"></div><div class="swatch-hex">769264</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#597A9F;"></div><div class="swatch-hex">597A9F</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#8C5E5E;"></div><div class="swatch-hex">8C5E5E</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#C2AF62;"></div><div class="swatch-hex">C2AF62</div></div>
+            <div class="swatch-item"><div class="swatch-circle" style="background:#AF6CB3;"></div><div class="swatch-hex">AF6CB3</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 05 DATA VIZ -->
+  <section id="visualization">
+    <div class="sec-num">05 — Data Visualization</div>
+    <h1 class="sec-title">データ可視化の<em>論理</em></h1>
+
+    <!-- Dual Ring -->
+    <div class="content-split">
+      <div>
+        <div class="split-tag">二重円環の構造</div>
+        <h2 class="split-h">Dual-Ring Chart</h2>
+        <p class="split-p">内側（固定分類5種）と外側（ユーザー定義）の二重構造。<br>同系色マッピングにより、0.5秒で資産構成の健全性を直感的に判断可能に。</p>
+        <ul class="feat-list">
+          <li>内側：固定5分類（現金・株式・債券・不動産・その他）</li>
+          <li>外側：ユーザー定義の詳細カテゴリ</li>
+          <li>同系色マッピングで階層を即時把握</li>
+        </ul>
+      </div>
+      <div class="image-container">	  
+          <img src="images/V1.png" alt="">       
+      </div>
+    </div>
+
+    <div class="divider">
+      <div class="div-line"></div>
+      <div class="div-lbl">二状態スタックチャート</div>
+      <div class="div-line"></div>
+    </div>
+
+    <!-- Stack Chart -->
+    <div class="content-split">
+      <div>
+        <div class="split-tag">二状態スタックチャート</div>
+        <h2 class="split-h">Dual-State Stack Chart</h2>
+        <p class="split-p">シェア表示と金額表示の二状態を切り替え。リスクエクスポージャーと純資産の成長の両軸から資産を読み解く。</p>
+        <ul class="feat-list">
+          <li>シェア表示 (%): 配分の安定性・リスクを可視化</li>
+          <li>金額表示 (Amount): 純資産の蓄積と成長を可視化</li>
+          <li>同系色マッピングで0.5秒判断</li>
+        </ul>
+      </div>
+      <div>
+        <div class="chart-pair">
+          <div>
+            <div class="csl">Share View (%)</div>
+            <div class="image-container">
+              <img src="images/V2.png">
+            </div>
+          </div>
+          <div>
+            <div class="csl">Amount View</div>
+            <div class="image-container">
+              <img src="images/V3.png">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 INTERACTION -->
+  <section id="interaction">
+    <div class="sec-num">06 — Interaction</div>
+    <h1 class="sec-title">直感で<em>インタラクション</em></h1>
+
+    <!-- Multi-currency -->
+    <div class="content-split">
+      <div>
+        <div class="split-tag t-yellow">多通貨視点の動的制御</div>
+        <h2 class="split-h">Multi-Currency Control</h2>
+        <p class="split-p">行（Row）の動的追加・削除機能により、ポートフォリオの変更に即座に対応する。</p>
+        <ul class="feat-list o-mark">
+          <li>各項目ごとに独立した通貨設定が可能</li>
+          <li>総資産ブロックで合計表示の通貨設定が可能</li>
+          <li>リアルタイムでの為替換算表示</li>
+        </ul>
+      </div>
+      <div>
+        <div class="image-container">
+         <img src="images/I1.png">
+        </div>
+      </div>
+    </div>
+
+    <div class="divider">
+      <div class="div-line"></div>
+      <div class="div-lbl">時系列の動的分析</div>
+      <div class="div-line"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="content-split">
+      <div>
+        <div class="split-tag">時系列の動的分析</div>
+        <h2 class="split-h">Timeline Analysis</h2>
+        <p class="split-p">モバイル画面に最適化された、タップ＆スライドによる時系列分析インターフェース。</p>
+        <ul class="feat-list">
+          <li>Y軸固定・X軸スライドによるモバイル最適化</li>
+          <li>タップ操作で特定の時点の詳細内訳を瞬時に表示</li>
+        </ul>
+      </div>
+      <div>
+        <div class="image-container">
+          <img src="images/I2.png">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 ABOUT -->
+  <section id="about">
+    <div class="sec-num">07 — About the Architect</div>
+    <h1 class="sec-title"><em>設計者</em>について</h1>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="ac-label">私は / I'm</div>
+        <h3>名古屋を拠点とするプロジェクトコーディネーター。</h3>
+        <p><em>Project Coordinator based in Nagoya, specializing in technical documentation & localization management.<br> Master's in Film Studies</em></p>
+      </div>
+      <div class="about-card">
+        <div class="ac-label">設計理念 / Design Mindset</div>
+        <h3>クロスボーダーなユーザー心理を理解し、プロジェクト管理の厳密な構造を直感的なUI設計へと落とし込む。</h3>
+        <p> <em>Logic-First Approach: Applying rigorous project management structures to intuitive interface design.</em></p>
+      </div>
+      <div class="about-card">
+        <div class="ac-label">注意 / Note</div>
+        <h3>職務上の実績は守秘義務（NDA）によりお見せできません。この個人プロジェクトにて中核となる手法をご展示させていただきます。</h3>
+        <p><em>Professional portfolio under NDA; this personal project showcases the core methodology.</em></p> 
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('#nav-links a');
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(s => obs.observe(s));
+
+  navLinks.forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
